@@ -19,10 +19,11 @@ Cloudflare Pages + Functions + OpenAI API を使用し、
 ### 実行画面
 
 ![実行画面1](./screenshot1.png)
+![実行画面2](./screenshot2.png)
 
 ### 保存されたJPEG
 
-![保存結果](./screenshot2.png)
+![保存結果](./screenshot4.png)
 
 ---
 
