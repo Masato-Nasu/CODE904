@@ -1,18 +1,20 @@
 # CODE 904 / MALFUNCTION / MEAN SLIPPER
 
-レトロなHUD風インターフェースで、画像から「もっともらしいが役に立たない説明書」を生成するWebアプリです。
-Cloudflare Pages + Functions + OpenAI API を使用し、パスワード制限付きで安全に運用できます。
+レトロなHUD風インターフェースで、画像から
+**「もっともらしいが役に立たない説明書」**を生成するWebアプリ。
+
+Cloudflare Pages + Functions + OpenAI API を使用し、
+パスワード制限付きで安全に運用されています。
 
 ---
 
-## 🧪 デモ
+## 🧪 Demo
 
-実際の実行画面はこちら
-👉 code-904.pages.dev
+👉 https://code-904.pages.dev
 
 ---
 
-## 📸 スクリーンショット
+## 📸 Screenshots
 
 ### 実行画面
 
@@ -24,85 +26,85 @@ Cloudflare Pages + Functions + OpenAI API を使用し、パスワード制限�
 
 ---
 
-## ✨ 機能
+## ✨ Features
 
 * 画像アップロード / カメラ撮影
-* OBJECT / SUBJECT モード切替
-* 英語（メイン）＋日本語（補助）の擬似説明書生成
-* TXT / JSON / JPEG（共有カード）での保存
-* パスワード制限付きアクセス
-* OpenAI APIキーはサーバー側（Cloudflare）で安全管理
+* OBJECT / SUBJECT モード
+* 英語（主）＋日本語（補助）の擬似説明生成
+* TXT / JSON / JPEG（共有カード）出力
+* パスワード制限アクセス
+* OpenAI APIキーはサーバー側で安全管理
 
 ---
 
-## 🧠 コンセプト
+## 🧠 Concept
 
 このアプリは、
 
-> 「意味がありそうで、実際には役に立たない説明」
+> **「説明しようとするシステムが、説明に失敗している状態」**
 
-を生成することを目的としています。
+を可視化します。
 
-* 物体 → 機能っぽい説明
-* 人物 → 状況っぽいログ
+* 物体 → 機能のようで機能しない記述
+* 人物 → ログのようで意味を確定しない観測
 
-という形で、**意味と無意味の境界**を遊ぶUIになっています。
+**意味と無意味の境界を操作するインターフェース**です。
 
 ---
 
-## 🛠 技術構成
+## 🛠 Tech Stack
 
 * Frontend: Vanilla JS + Canvas
 * Backend: Cloudflare Pages Functions
 * AI: OpenAI Responses API（画像入力対応）
 * Hosting: Cloudflare Pages
-* Security: Cloudflare Secrets + パスワード認証
+* Security: Cloudflare Secrets + Password Auth
 
 ---
 
-## 🧾 使い方
+## 🧾 Usage
 
 1. ページを開く
-2. パスワードを入力
+2. パスワード入力
 3. 画像を読み込む or 撮影
-4. モードを選択
+4. モード選択
 5. SCAN
 6. 保存（TXT / JSON / JPEG）
 
 ---
 
-## 🖼 JPEG出力について
+## 🖼 JPEG Output
 
-共有用カードとして：
+共有カードとして生成：
 
-* 画像 + 説明文 + HUD情報
-* SNS投稿向けのレイアウト
-* 長すぎる内容は自動で圧縮・省略
-
----
-
-## ⚠️ 注意
-
-* 生成内容は実用ではありません
-* 人物モードは個人識別を行いません
-* パスワード共有型のため限定用途向けです
+* 画像 + 説明文 + HUD
+* SNS投稿に最適化されたレイアウト
+* 長文は自動圧縮（意味は保持されない）
 
 ---
 
-## 📄 ライセンス
+## ⚠️ Notes
+
+* 実用的な説明は生成されません
+* 人物モードでは個人識別を行いません
+* 限定共有用途を想定しています
+
+---
+
+## 📄 License
 
 MIT
 
 ---
 
-## 🧑‍💻 作者
+## 🧑‍💻 Author
 
 MASATO
 
 ---
 
-## 💡 一言
+## 💡 Statement
 
-これは「説明書」ではなく、
-**“意味を与える機械が、意味を崩壊させる瞬間を固定した作品”** です。
+これは説明書ではない。
 
+**意味を与える機械が、意味を崩壊させる瞬間のログである。**
