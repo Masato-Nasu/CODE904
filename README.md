@@ -17,8 +17,6 @@ Cloudflare Pages + Functions + OpenAI API を使用し、パスワード制限�
 ### 実行画面
 
 ![実行画面1](./screenshot1.png)
-![実行画面2](./screenshot2.png)
-![実行画面3](./screenshot3.png)
 
 ### 保存されたJPEG
 
