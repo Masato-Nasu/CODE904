@@ -1,86 +1,110 @@
 # CODE 904 / MALFUNCTION / MEAN SLIPPER
 
-Cloudflare Pages + Pages Functions + **OpenAI API** 用の PWA です。  
-画像アップロードまたはカメラ撮影から、**英語主表示 + 日本語補助表示**の疑似マニュアルを生成します。
+レトロなHUD風インターフェースで、画像から「もっともらしいが役に立たない説明書」を生成するWebアプリです。
+Cloudflare Pages + Functions + OpenAI API を使用し、パスワード制限付きで安全に運用できます。
 
-この版は、**共通パスワードを知っている人だけ使える**構成です。  
-OpenAI の API キーは **Cloudflare secret** に置き、ブラウザ側には出しません。
+---
 
-## できること
+## 🧪 デモ
 
-- 画像読込
-- カメラ撮影
-- OBJECT / SUBJECT モード切替
-- SCAN ごとの文言生成
-- TXT / JSON / JPEG CARD 書き出し
-- PWA インストール
-- 共通パスワードによるサーバー側アクセス制御
-- OpenAI API 未設定時のローカルフォールバック
+実際の実行画面はこちら
+👉 code-904.pages.dev
 
-## フォルダ構成
+---
 
-- `index.html` — 画面本体
-- `styles.css` — CRT / HUD スタイル
-- `app.js` — フロントエンド処理
-- `manifest.webmanifest` — PWA 設定
-- `sw.js` — service worker
-- `functions/api/auth.js` — パスワード検証 API
-- `functions/api/generate.js` — OpenAI 生成 API
-- `functions/api/health.js` — バックエンド確認 API
+## 📸 スクリーンショット
 
-## Cloudflare Pages で必要なもの
+### 実行画面
 
-Cloudflare Pages の **Environment Variables / Secrets** に、少なくとも下記を設定してください。
+![実行画面1](./screenshot1.png)
+![実行画面2](./screenshot2.png)
+![実行画面3](./screenshot3.png)
 
-### Secret
+### 保存されたJPEG
 
-- `OPENAI_API_KEY`  
-  OpenAI の API キー
-- `APP_PASSWORD`  
-  このアプリに入るための共通パスワード
+![保存結果](./screenshot4.png)
 
-### Variable（任意）
+---
 
-- `OPENAI_MODEL`  
-  省略時は `gpt-4.1-mini`
+## ✨ 機能
 
-## デプロイ
+* 画像アップロード / カメラ撮影
+* OBJECT / SUBJECT モード切替
+* 英語（メイン）＋日本語（補助）の擬似説明書生成
+* TXT / JSON / JPEG（共有カード）での保存
+* パスワード制限付きアクセス
+* OpenAI APIキーはサーバー側（Cloudflare）で安全管理
 
-このプロジェクトは `functions` フォルダを含むため、Wrangler でのデプロイが確実です。
+---
 
-```powershell
-cd C:\Users\Masato\Desktop\code904
-npx wrangler pages deploy . --project-name code-904
-```
+## 🧠 コンセプト
 
-Cloudflare 側で secret を入れる場合の例です。
+このアプリは、
 
-```powershell
-cd C:\Users\Masato\Desktop\code904
-npx wrangler pages secret put OPENAI_API_KEY --project-name code-904
-npx wrangler pages secret put APP_PASSWORD --project-name code-904
-```
+> 「意味がありそうで、実際には役に立たない説明」
 
-`OPENAI_MODEL` は Cloudflare ダッシュボードの Pages > Settings > Environment variables から追加してください。
+を生成することを目的としています。
 
-## 使い方
+* 物体 → 機能っぽい説明
+* 人物 → 状況っぽいログ
 
-1. アプリを開く
-2. 共通パスワードを入力して解錠
-3. 画像を読み込むかカメラで撮影
-4. `OBJECT` か `SUBJECT` を選ぶ
-5. `SCAN` を押す
-6. 右側に出力された文を `EXPORT TXT` / `EXPORT JSON` / `JPEG CARD` で保存
+という形で、**意味と無意味の境界**を遊ぶUIになっています。
 
-## セキュリティ方針
+---
 
-- OpenAI API キーは **Cloudflare secret** にのみ置きます
-- フロントエンドには API キーを書きません
-- パスワード判定は `functions/api/auth.js` と `functions/api/generate.js` 側で行います
-- 人物モードは、**個人識別や属性推定をしない**ようにしています
+## 🛠 技術構成
 
-## 注意
+* Frontend: Vanilla JS + Canvas
+* Backend: Cloudflare Pages Functions
+* AI: OpenAI Responses API（画像入力対応）
+* Hosting: Cloudflare Pages
+* Security: Cloudflare Secrets + パスワード認証
 
-- 共通パスワード方式なので、知っている人同士での限定利用向けです
-- より強い認証が必要なら、後で Cloudflare Access に切り替えられます
-- OpenAI API が失敗した場合はローカル文言へフォールバックします
+---
+
+## 🧾 使い方
+
+1. ページを開く
+2. パスワードを入力
+3. 画像を読み込む or 撮影
+4. モードを選択
+5. SCAN
+6. 保存（TXT / JSON / JPEG）
+
+---
+
+## 🖼 JPEG出力について
+
+共有用カードとして：
+
+* 画像 + 説明文 + HUD情報
+* SNS投稿向けのレイアウト
+* 長すぎる内容は自動で圧縮・省略
+
+---
+
+## ⚠️ 注意
+
+* 生成内容は実用ではありません
+* 人物モードは個人識別を行いません
+* パスワード共有型のため限定用途向けです
+
+---
+
+## 📄 ライセンス
+
+MIT
+
+---
+
+## 🧑‍💻 作者
+
+MASATO
+
+---
+
+## 💡 一言
+
+これは「説明書」ではなく、
+**“意味を与える機械が、意味を崩壊させる瞬間を固定した作品”** です。
+
