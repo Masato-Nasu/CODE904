@@ -106,11 +106,19 @@
         <img id="preview-image" class="hidden" alt="Target preview">
         <video id="preview-video" class="hidden" autoplay playsinline muted></video>
         <div class="preview-empty" id="preview-empty"></div>
+        <div class="scan-flash hidden" id="scan-flash" aria-hidden="true"></div>
       </div>
 
       <div class="hud-reticle reticle-a"></div>
       <div class="hud-reticle reticle-b"></div>
       <div class="hud-crosshair"></div>
+
+      <div class="capture-bottom-ui">
+        <div class="tap-hint" id="tap-hint">TAP SCREEN TO CAPTURE / 画面タップで撮影</div>
+        <button class="capture-button-bottom" id="capture-bottom" disabled aria-label="Capture frame">
+          <span class="capture-button-core"></span>
+        </button>
+      </div>
     </main>
 
     <aside class="panel panel-right">

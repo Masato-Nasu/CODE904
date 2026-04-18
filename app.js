@@ -32,6 +32,10 @@ const els = {
   previewImage: document.getElementById("preview-image"),
   previewVideo: document.getElementById("preview-video"),
   previewEmpty: document.getElementById("preview-empty"),
+  previewSurface: document.getElementById("preview-surface"),
+  scanFlash: document.getElementById("scan-flash"),
+  captureBottom: document.getElementById("capture-bottom"),
+  tapHint: document.getElementById("tap-hint"),
   progressFill: document.getElementById("progress-fill"),
   statusEn: document.getElementById("status-en"),
   statusJp: document.getElementById("status-jp"),
@@ -118,6 +122,25 @@ function formatFileStamp(date = new Date()) {
   return `${yyyy}${mm}${dd}-${hh}${mi}${ss}`;
 }
 
+function setCaptureUi(active) {
+  const live = !!active;
+  els.previewSurface.classList.toggle("camera-live", live);
+  els.captureBottom.disabled = !live;
+  els.cameraCapture.disabled = !live;
+  els.tapHint.classList.toggle("hidden", !live);
+}
+
+function triggerScanFlash() {
+  els.scanFlash.classList.remove("hidden");
+  els.scanFlash.classList.remove("active");
+  void els.scanFlash.offsetWidth;
+  els.scanFlash.classList.add("active");
+  window.setTimeout(() => {
+    els.scanFlash.classList.remove("active");
+    els.scanFlash.classList.add("hidden");
+  }, 480);
+}
+
 function clearPreview() {
   els.previewImage.src = "";
   els.previewImage.classList.add("hidden");
@@ -127,6 +150,7 @@ function clearPreview() {
   els.cameraTip.textContent = state.unlocked
     ? "Load or capture an image. / 画像を読込または撮影してください。"
     : "Unlock first. / 先に解錠してください。";
+  setCaptureUi(false);
 }
 
 function showImage(url) {
@@ -136,6 +160,7 @@ function showImage(url) {
   els.previewEmpty.classList.add("hidden");
   els.hudSignal.textContent = "TARGET FRAME / 対象画像";
   els.cameraTip.textContent = "Ready for scan. / 走査可能です。";
+  setCaptureUi(false);
 }
 
 function showVideo() {
@@ -143,7 +168,8 @@ function showVideo() {
   els.previewImage.classList.add("hidden");
   els.previewEmpty.classList.add("hidden");
   els.hudSignal.textContent = "LIVE CAMERA / ライブ映像";
-  els.cameraTip.textContent = "Capture the target when the frame is stable. / フレームが安定したら撮影してください。";
+  els.cameraTip.textContent = "Tap screen or press shutter to capture. / 画面タップまたは下のシャッターで撮影してください。";
+  setCaptureUi(true);
 }
 
 function updateMode(mode) {
@@ -230,6 +256,7 @@ async function optimizeImageDataUrl(dataUrl, maxSide = 1280, quality = 0.88) {
   const targetWidth = Math.max(1, Math.round(width * scale));
   const targetHeight = Math.max(1, Math.round(height * scale));
 
+  triggerScanFlash();
   const canvas = document.createElement("canvas");
   canvas.width = targetWidth;
   canvas.height = targetHeight;
@@ -402,7 +429,7 @@ async function exportJpegCard() {
   ctx.strokeStyle = "rgba(103,240,183,0.6)";
   ctx.strokeRect(leftW * 0.12, height * 0.18, leftW * 0.25, height * 0.24);
   ctx.strokeStyle = "rgba(103,240,183,0.45)";
-  ctx.strokeRect(leftW * 0.72, height * 0.31, leftW * 0.16, height * 0.16);
+  ctx.strokeRect(leftW * 0.72, height * 0.31, leftW * 0.16, leftW * 0.16);
   const cx = leftW / 2;
   const cy = height / 2;
   ctx.strokeStyle = "rgba(103,240,183,0.65)";
@@ -425,72 +452,77 @@ async function exportJpegCard() {
   ctx.font = '22px "Lucida Console", "Courier New", monospace';
   ctx.fillText(els.hudStatus.textContent || "MALFUNCTION DETECTED", 28, height - 22);
 
+  const headerY = 34;
+  const headerH = 96;
+  const outputY = 146;
+  const outputH = 520;
+  const footerY = 690;
+  const footerH = 138;
+
   ctx.fillStyle = "rgba(0,0,0,0.42)";
-  ctx.fillRect(rightX - 16, 34, rightW + 8, 92);
+  ctx.fillRect(rightX - 16, headerY, rightW + 8, headerH);
   ctx.strokeStyle = "rgba(35,90,67,0.95)";
-  ctx.strokeRect(rightX - 16, 34, rightW + 8, 92);
+  ctx.strokeRect(rightX - 16, headerY, rightW + 8, headerH);
   ctx.fillStyle = "#8efed1";
   ctx.font = '16px "Lucida Console", "Courier New", monospace';
   ctx.fillText(state.mode === "subject" ? "SUBJECT LOG / 被写体記録" : "OBJECT MANUAL / 物体説明", rightX, 60);
   ctx.fillStyle = "#bcfee4";
   ctx.font = '15px "Arial Narrow", "Helvetica Neue", Helvetica, Arial, sans-serif';
-  let noteY = 88;
-  noteY = wrapCanvasText(ctx, modeNotes[state.mode].noteEn, rightX, noteY, rightW - 18, 18);
-  wrapCanvasText(ctx, modeNotes[state.mode].noteJp, rightX, noteY + 4, rightW - 18, 18);
-
-  const outputBoxY = 146;
-  const outputBoxH = 520;
-  const outputBoxBottom = outputBoxY + outputBoxH;
-  const omittedBlockH = 74;
+  wrapCanvasTextClamp(ctx, modeNotes[state.mode].noteEn, rightX, 88, rightW - 18, 18, 2);
+  wrapCanvasTextClamp(ctx, modeNotes[state.mode].noteJp, rightX, 126, rightW - 18, 18, 1);
 
   ctx.fillStyle = "rgba(0,0,0,0.34)";
-  ctx.fillRect(rightX - 16, outputBoxY, rightW + 8, outputBoxH);
+  ctx.fillRect(rightX - 16, outputY, rightW + 8, outputH);
   ctx.strokeStyle = "rgba(35,90,67,0.95)";
-  ctx.strokeRect(rightX - 16, outputBoxY, rightW + 8, outputBoxH);
+  ctx.strokeRect(rightX - 16, outputY, rightW + 8, outputH);
   ctx.fillStyle = "#8efed1";
   ctx.font = '16px "Lucida Console", "Courier New", monospace';
   ctx.fillText("INSTRUCTION OUTPUT / 説明出力", rightX, 174);
 
-  let y = 206;
   const sections = state.generated.sections || [];
   const cardSections = sections.slice(0, 3);
+  const slotTop = 206;
+  const slotHeight = 126;
+  const slotWidth = rightW - 12;
+
   cardSections.forEach((section, index) => {
+    const blockY = slotTop + (slotHeight * index);
     ctx.fillStyle = "#7ef9c3";
     ctx.font = '11px "Lucida Console", "Courier New", monospace';
-    ctx.fillText(`${section.label_en || `ENTRY ${index + 1}`} / ${section.label_jp || "記述"}`, rightX, y);
-    y += 24;
+    ctx.fillText(`${section.label_en || `ENTRY ${index + 1}`} / ${section.label_jp || "記述"}`, rightX, blockY);
 
     ctx.fillStyle = "#e6fff6";
     ctx.font = '18px "Arial Narrow", "Helvetica Neue", Helvetica, Arial, sans-serif';
-    y = wrapCanvasTextClamp(ctx, section.en || "", rightX, y, rightW - 12, 24, 2);
+    wrapCanvasTextClamp(ctx, section.en || "", rightX, blockY + 24, slotWidth, 24, 2);
 
     ctx.fillStyle = "#a3f8d2";
     ctx.font = '15px "Arial Narrow", "Helvetica Neue", Helvetica, Arial, sans-serif';
-    y = wrapCanvasTextClamp(ctx, section.jp || "", rightX, y + 2, rightW - 12, 20, 2);
+    wrapCanvasTextClamp(ctx, section.jp || "", rightX, blockY + 76, slotWidth, 20, 2);
 
-    ctx.strokeStyle = "rgba(23,60,45,0.95)";
-    ctx.beginPath();
-    ctx.moveTo(rightX, y + 6);
-    ctx.lineTo(rightX + rightW - 8, y + 6);
-    ctx.stroke();
-    y += 26;
+    if (index < 2) {
+      ctx.strokeStyle = "rgba(23,60,45,0.95)";
+      ctx.beginPath();
+      ctx.moveTo(rightX, blockY + slotHeight - 12);
+      ctx.lineTo(rightX + rightW - 8, blockY + slotHeight - 12);
+      ctx.stroke();
+    }
   });
 
   if (sections.length > cardSections.length) {
     const omittedCount = sections.length - cardSections.length;
-    const omittedY = outputBoxBottom - omittedBlockH;
+    const omittedY = outputY + outputH - 52;
+    ctx.strokeStyle = "rgba(23,60,45,0.95)";
+    ctx.beginPath();
+    ctx.moveTo(rightX, omittedY - 18);
+    ctx.lineTo(rightX + rightW - 8, omittedY - 18);
+    ctx.stroke();
     ctx.fillStyle = "#7ef9c3";
     ctx.font = '12px "Lucida Console", "Courier New", monospace';
     ctx.fillText("STATIC LOSS / 静電欠落", rightX, omittedY);
-    ctx.strokeStyle = "rgba(23,60,45,0.95)";
-    ctx.beginPath();
-    ctx.moveTo(rightX, omittedY - 14);
-    ctx.lineTo(rightX + rightW - 8, omittedY - 14);
-    ctx.stroke();
     ctx.fillStyle = "#b1fddf";
-    ctx.font = '15px "Arial Narrow", "Helvetica Neue", Helvetica, Arial, sans-serif';
-    ctx.fillText(`${omittedCount} ENTRY DISSOLVED INTO STATIC.`, rightX, omittedY + 20);
-    ctx.fillText(`${omittedCount}件の追加記述は走査ノイズへ溶解しました。`, rightX, omittedY + 40);
+    ctx.font = '14px "Arial Narrow", "Helvetica Neue", Helvetica, Arial, sans-serif';
+    ctx.fillText(`${omittedCount} ENTRY DISSOLVED INTO STATIC.`, rightX, omittedY + 22);
+    ctx.fillText(`${omittedCount}件の追加記述は走査ノイズへ溶解しました。`, rightX, omittedY + 42);
   }
 
   const footerDiagnostics = (state.mode === "subject" ? [
@@ -500,23 +532,20 @@ async function exportJpegCard() {
     { en: "OBJECT STATUS", jp: "対象状態" },
     { en: "MEANING DRIFT", jp: "意味のずれ" },
   ]);
-  const diagY = 748;
-  const boxW = (rightW - 12) / 2;
-  footerDiagnostics.slice(0, 2).forEach((item, idx) => {
-    const col = idx % 2;
-    const row = 0;
-    const x = rightX + col * (boxW + 12);
-    const yy = diagY + row * 76;
+
+  const footerBoxW = (rightW - 12) / 2;
+  footerDiagnostics.forEach((item, idx) => {
+    const x = rightX + idx * (footerBoxW + 12);
     ctx.fillStyle = "rgba(0,0,0,0.26)";
-    ctx.fillRect(x, yy, boxW, 64);
+    ctx.fillRect(x, footerY, footerBoxW, footerH);
     ctx.strokeStyle = "rgba(35,90,67,0.95)";
-    ctx.strokeRect(x, yy, boxW, 64);
+    ctx.strokeRect(x, footerY, footerBoxW, footerH);
     ctx.fillStyle = "#7ff8c0";
     ctx.font = '11px "Lucida Console", "Courier New", monospace';
-    wrapCanvasTextClamp(ctx, item.en, x + 12, yy + 18, boxW - 24, 14, 2);
+    wrapCanvasTextClamp(ctx, item.en, x + 12, footerY + 18, footerBoxW - 24, 14, 2);
     ctx.fillStyle = "#b1fddf";
     ctx.font = '14px "Arial Narrow", "Helvetica Neue", Helvetica, Arial, sans-serif';
-    wrapCanvasTextClamp(ctx, item.jp, x + 12, yy + 44, boxW - 24, 16, 1);
+    wrapCanvasTextClamp(ctx, item.jp, x + 12, footerY + 82, footerBoxW - 24, 16, 2);
   });
 
   canvas.toBlob((blob) => {
@@ -617,6 +646,7 @@ async function scan() {
   if (!state.imageDataUrl || state.scanning) return;
   state.scanning = true;
   setError("");
+  triggerScanFlash();
   resetOutput();
   setStatus("SCANNING", "走査中");
   els.scanButton.disabled = true;
@@ -792,6 +822,12 @@ els.modeButtons.forEach(button => {
 });
 els.cameraStart.addEventListener("click", startCamera);
 els.cameraCapture.addEventListener("click", captureFrame);
+els.captureBottom.addEventListener("click", captureFrame);
+els.previewSurface.addEventListener("click", (event) => {
+  if (!state.stream) return;
+  if (event.target === els.captureBottom) return;
+  captureFrame();
+});
 els.cameraStop.addEventListener("click", () => {
   stopCamera();
   if (state.imageDataUrl) {
