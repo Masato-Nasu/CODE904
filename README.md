@@ -3,8 +3,8 @@
 レトロなHUD風インターフェースで、画像から
 **「もっともらしいが役に立たない説明書」**を生成するWebアプリ。
 
-Cloudflare Pages + Functions + OpenAI API を使用し、
-パスワード制限付きで安全に運用されています。
+Cloudflare Pages + Functions + OpenAI API を使用した **BYOK（Bring Your Own Key）対応アプリ**です。
+利用者が自分のOpenAI APIキーを入力するため、管理者のAPIキーは使いません。
 
 ---
 
@@ -32,8 +32,9 @@ Cloudflare Pages + Functions + OpenAI API を使用し、
 * OBJECT / SUBJECT モード
 * 英語（主）＋日本語（補助）の擬似説明生成
 * TXT / JSON / JPEG（共有カード）出力
-* パスワード制限アクセス
-* OpenAI APIキーはサーバー側で安全管理
+* BYOK：利用者ごとにOpenAI APIキーを入力
+* APIキーはHTTPSでCloudflare Pages Functionsに送られ、OpenAIへ中継されます
+* キーの端末保存は任意（初期設定では保存しません）
 
 ---
 
@@ -58,18 +59,24 @@ Cloudflare Pages + Functions + OpenAI API を使用し、
 * Backend: Cloudflare Pages Functions
 * AI: OpenAI Responses API（画像入力対応）
 * Hosting: Cloudflare Pages
-* Security: Cloudflare Secrets + Password Auth
+* Security: BYOK, HTTPS, no server-side key persistence
 
 ---
 
 ## 🧾 Usage
 
 1. ページを開く
-2. パスワード入力
+2. 自分のOpenAI APIキーを入力（保存は任意）
 3. 画像を読み込む or 撮影
 4. モード選択
 5. SCAN
 6. 保存（TXT / JSON / JPEG）
+
+---
+
+APIキーはアプリ内の「CHANGE KEY」から変更できます。SCAN時に有効性が確認され、OpenAI API利用料金はキー所有者に発生します。キーを端末に保存する場合はブラウザのlocalStorageを使用するため、共有端末では保存しないでください。
+
+Cloudflare側の `OPENAI_API_KEY` と `APP_PASSWORD` はBYOK版では使用しません。安全のため既存のSecretsを削除して構いません。
 
 ---
 
