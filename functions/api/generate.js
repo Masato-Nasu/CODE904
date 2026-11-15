@@ -213,10 +213,9 @@ function normalizeResult(candidate, mode) {
   };
 }
 
-function requirePassword(request, env) {
-  const configuredPassword = String(env.APP_PASSWORD || "").trim();
-  const incomingPassword = String(request.headers.get("x-app-password") || "").trim();
-  return configuredPassword && incomingPassword && configuredPassword === incomingPassword;
+function readApiKey(request) {
+  const value = String(request.headers.get("x-openai-api-key") || "").trim();
+  return /^sk-[A-Za-z0-9_-]{16,}$/.test(value) ? value : "";
 }
 
 function extractResponseText(payload) {
@@ -236,8 +235,7 @@ function extractResponseText(payload) {
   return texts.join("\n").trim();
 }
 
-async function runOpenAI(env, mode, imageDataUrl) {
-  if (!env.OPENAI_API_KEY) return null;
+async function runOpenAI(env, mode, imageDataUrl, apiKey) {
 
   const model = env.OPENAI_MODEL || "gpt-4.1-mini";
   const systemPrompt = [
@@ -260,7 +258,7 @@ async function runOpenAI(env, mode, imageDataUrl) {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      "authorization": `Bearer ${env.OPENAI_API_KEY}`,
+      "authorization": `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
       model,
@@ -283,8 +281,14 @@ async function runOpenAI(env, mode, imageDataUrl) {
   });
 
   if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`OpenAI API error: ${response.status} ${text}`);
+    // Never include the user's API key or upstream error body in responses or logs.
+    const err = new Error(response.status === 401 || response.status === 403
+      ? "OpenAI APIキーが無効か、利用権限がありません。/ Invalid API key or permission denied."
+      : response.status === 429
+        ? "OpenAI rate limit or usage limit reached. / 利用上限または速度制限に達しました。"
+        : `OpenAI API request failed (HTTP ${response.status}).`);
+    err.status = response.status === 401 || response.status === 403 ? 401 : response.status === 429 ? 429 : 502;
+    throw err;
   }
 
   const payload = await response.json();
@@ -298,43 +302,35 @@ async function runOpenAI(env, mode, imageDataUrl) {
 }
 
 export async function onRequestPost(context) {
-  try {
-    if (!requirePassword(context.request, context.env)) {
-      return json({ ok: false, error: "Unauthorized." }, 401);
-    }
+  // BYOK only: the developer's Cloudflare OPENAI_API_KEY and APP_PASSWORD
+  // are deliberately ignored. No key is persisted on the server.
+  const apiKey = readApiKey(context.request);
+  if (!apiKey) {
+    return json({ ok: false, error: "OpenAI APIキーが必要です。/ Provide your OpenAI API key." }, 401);
+  }
 
+  try {
     const body = await context.request.json().catch(() => ({}));
     const mode = body?.mode === "subject" ? "subject" : "object";
     const imageDataUrl = String(body?.imageDataUrl || "");
-    const nonce = String(body?.nonce || "");
-
-    if (!imageDataUrl.startsWith("data:image/")) {
-      return json({ ok: false, error: "Image data URL is required." }, 400);
+    if (!/^data:image\/(?:jpeg|png|webp);base64,/i.test(imageDataUrl) || imageDataUrl.length > 8000000) {
+      return json({ ok: false, error: "JPEG/PNG/WebP image required (max 8 MB encoded)." }, 400);
     }
 
-    let result = null;
-    let usedAI = false;
-    let warning = "";
-
-    try {
-      result = await runOpenAI(context.env, mode, imageDataUrl);
-      usedAI = Boolean(result);
-    } catch (error) {
-      warning = `OpenAI failed, fallback used. / OpenAI に失敗したためフォールバックを使用しました。 ${error?.message || ""}`.trim();
-    }
-
+    const result = await runOpenAI(context.env, mode, imageDataUrl, apiKey);
     if (!result) {
-      result = buildFallback(mode, nonce, imageDataUrl);
+      return json({ ok: false, error: "AI output was incomplete. / 生成結果を解析できませんでした。もう一度お試しください。" }, 502);
     }
-
     return json({
       ok: true,
-      usedAI,
+      usedAI: true,
       model: context.env.OPENAI_MODEL || "gpt-4.1-mini",
-      warning,
       result,
     });
   } catch (error) {
-    return json({ ok: false, error: error?.message || "Generation failed." }, 500);
+    return json({
+      ok: false,
+      error: error?.message || "Generation failed.",
+    }, error?.status || 502);
   }
 }

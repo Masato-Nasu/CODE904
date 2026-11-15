@@ -11,8 +11,9 @@ function json(data, status = 200) {
 export function onRequestGet(context) {
   return json({
     ok: true,
-    authRequired: true,
-    openaiConfigured: Boolean(context.env.OPENAI_API_KEY),
+    authRequired: false,
+    byok: true,
+    openaiConfigured: false,
     model: context.env.OPENAI_MODEL || "gpt-4.1-mini",
   });
 }

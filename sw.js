@@ -1,5 +1,5 @@
 
-const CACHE = "code904-v2";
+const CACHE = "code904-v3-byok";
 const ASSETS = [
   "./",
   "./index.html",
