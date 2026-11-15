@@ -1,4 +1,4 @@
-const PASSWORD_STORAGE_KEY = "code904_password";
+const API_KEY_STORAGE_KEY = "code904_byok_api_key";
 const state = {
   mode: "object",
   imageDataUrl: "",
@@ -6,15 +6,15 @@ const state = {
   stream: null,
   scanning: false,
   backend: "checking",
-  sharedPassword: "",
+  apiKey: "",
   unlocked: false,
 };
 
 const els = {
   authOverlay: document.getElementById("auth-overlay"),
   authForm: document.getElementById("auth-form"),
-  passwordInput: document.getElementById("password-input"),
-  rememberPassword: document.getElementById("remember-password"),
+  apiKeyInput: document.getElementById("api-key-input"),
+  rememberKey: document.getElementById("remember-key"),
   authError: document.getElementById("auth-error"),
   authSmall: document.getElementById("auth-small"),
   appShell: document.getElementById("app-shell"),
@@ -662,7 +662,7 @@ async function scan() {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        "x-app-password": state.sharedPassword,
+        "x-openai-api-key": state.apiKey,
       },
       body: JSON.stringify({
         mode: state.mode,
@@ -674,7 +674,8 @@ async function scan() {
     const payload = await response.json().catch(() => ({}));
     if (response.status === 401) {
       lockApp(true);
-      throw new Error(payload.error || "認証が無効です。/ Authentication expired.");
+      setAuthError(payload.error || "APIキーが無効です。キーを確認してください。/ Invalid API key.");
+      throw new Error("Invalid API key.");
     }
     if (!response.ok) {
       throw new Error(payload.error || "Generation failed.");
@@ -708,14 +709,11 @@ async function scan() {
 
 async function checkBackend() {
   try {
-    const res = await fetch("/api/health");
+    const res = await fetch("/api/health", { cache: "no-store" });
+    if (!res.ok) throw new Error("Backend unavailable");
     const data = await res.json();
-    state.backend = data.openaiConfigured ? "openai" : "fallback";
-    setBackendNote(
-      data.openaiConfigured
-        ? `Backend: OpenAI ready (${data.model || "unknown model"}) / バックエンド: OpenAI 使用可`
-        : "Backend: local fallback only / バックエンド: ローカルフォールバックのみ"
-    );
+    state.backend = "byok";
+    setBackendNote(`Backend: BYOK / OpenAI ${data.model || "gpt-4.1-mini"} / 各自のAPIキーで利用`);
   } catch (error) {
     console.warn(error);
     state.backend = "unknown";
@@ -723,38 +721,29 @@ async function checkBackend() {
   }
 }
 
-async function verifyPassword(password) {
-  const response = await fetch("/api/auth", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ password }),
-  });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok || !data.ok) {
-    throw new Error(data.error || "Password verification failed.");
+function validateApiKey(value) {
+  if (!/^sk-[A-Za-z0-9_-]{16,}$/.test(value)) {
+    throw new Error("OpenAI APIキー（sk-で始まるキー）を入力してください。/ Enter a valid-looking OpenAI API key.");
   }
-  return data;
 }
 
 function openAuth(prefill = "") {
   els.authOverlay.classList.remove("hidden");
   els.appShell.classList.add("app-locked");
-  if (prefill) {
-    els.passwordInput.value = prefill;
-  }
-  setTimeout(() => els.passwordInput.focus(), 0);
+  els.apiKeyInput.value = prefill;
+  setTimeout(() => els.apiKeyInput.focus(), 0);
 }
 
-function unlockApp(password, remember) {
+function unlockApp(apiKey, remember) {
   state.unlocked = true;
-  state.sharedPassword = password;
+  state.apiKey = apiKey;
   els.authOverlay.classList.add("hidden");
   els.appShell.classList.remove("app-locked");
   setAuthError("");
   if (remember) {
-    localStorage.setItem(PASSWORD_STORAGE_KEY, password);
+    localStorage.setItem(API_KEY_STORAGE_KEY, apiKey);
   } else {
-    localStorage.removeItem(PASSWORD_STORAGE_KEY);
+    localStorage.removeItem(API_KEY_STORAGE_KEY);
   }
   updateMode(state.mode);
   resetOutput();
@@ -767,7 +756,7 @@ function unlockApp(password, remember) {
 
 function lockApp(clearStored = false) {
   state.unlocked = false;
-  state.sharedPassword = "";
+  state.apiKey = "";
   stopCamera();
   setStatus("LOCKED", "認証待機中");
   setBackendNote("Backend: locked / バックエンド: ロック中");
@@ -778,28 +767,21 @@ function lockApp(clearStored = false) {
   els.scanButton.disabled = true;
   els.progressFill.style.width = "0%";
   if (clearStored) {
-    localStorage.removeItem(PASSWORD_STORAGE_KEY);
+    localStorage.removeItem(API_KEY_STORAGE_KEY);
   }
   openAuth();
 }
 
-els.authForm.addEventListener("submit", async (event) => {
+els.authForm.addEventListener("submit", (event) => {
   event.preventDefault();
-  const password = els.passwordInput.value.trim();
-  if (!password) {
-    setAuthError("合言葉を入力してください。/ Enter the password.");
-    return;
-  }
+  const apiKey = els.apiKeyInput.value.trim();
   setAuthError("");
-  els.authSmall.textContent = "VERIFYING / 検証中";
   try {
-    await verifyPassword(password);
-    unlockApp(password, els.rememberPassword.checked);
-    els.authSmall.textContent = "Access granted. / 通過しました。";
+    validateApiKey(apiKey);
+    unlockApp(apiKey, els.rememberKey.checked);
+    els.authSmall.textContent = "Key ready. Validated on SCAN. / キーを設定しました。走査時に確認します。";
   } catch (error) {
-    console.error(error);
-    setAuthError(error.message || "認証に失敗しました。/ Authentication failed.");
-    els.authSmall.textContent = "Access denied. / 通過できませんでした。";
+    setAuthError(error.message || "APIキーを確認してください。/ Check the API key.");
   }
 });
 
@@ -864,15 +846,19 @@ renderDiagnostics([
 clearPreview();
 openAuth();
 
-const savedPassword = localStorage.getItem(PASSWORD_STORAGE_KEY);
-if (savedPassword) {
-  els.passwordInput.value = savedPassword;
-  verifyPassword(savedPassword)
-    .then(() => unlockApp(savedPassword, true))
-    .catch(() => {
-      localStorage.removeItem(PASSWORD_STORAGE_KEY);
-      openAuth();
-    });
+// Remove the old passphrase saved by the pre-BYOK app.
+localStorage.removeItem("code904_password");
+const savedApiKey = localStorage.getItem(API_KEY_STORAGE_KEY);
+if (savedApiKey) {
+  try {
+    validateApiKey(savedApiKey);
+    els.apiKeyInput.value = savedApiKey;
+    els.rememberKey.checked = true;
+    unlockApp(savedApiKey, true);
+  } catch {
+    localStorage.removeItem(API_KEY_STORAGE_KEY);
+    openAuth();
+  }
 }
 
 if ("serviceWorker" in navigator) {
